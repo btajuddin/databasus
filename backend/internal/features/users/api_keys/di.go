@@ -4,7 +4,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	"databasus-backend/internal/util/logger"
 )
@@ -18,7 +17,6 @@ var apiKeyRepository = &ApiKeyRepository{}
 
 var apiKeyService = &ApiKeyService{
 	apiKeyRepository,
-	users_repositories.GetUserRepository(),
 	nil, // auditLogWriter - set via setter in SetupDependencies
 }
 

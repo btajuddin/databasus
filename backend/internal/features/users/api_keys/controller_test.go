@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_CreateApiKey_WhenUserHasNoKey_ApiKeyCreated(t *testing.T) {
+func Test_UpsertApiKey_WhenUserHasNoKey_ApiKeyCreated(t *testing.T) {
 	router := createApiKeyTestRouter()
 	user := users_testing.CreateTestUser(users_enums.UserRoleMember)
 
@@ -29,39 +29,45 @@ func Test_CreateApiKey_WhenUserHasNoKey_ApiKeyCreated(t *testing.T) {
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusCreated,
+		http.StatusOK,
 		&response,
 	)
 
 	assert.NotEmpty(t, response.ApiKey)
 	assert.NotEmpty(t, response.KeyPrefix)
-	assert.Contains(t, response.ApiKey, "dbs_live_")
-	assert.Equal(t, "dbs_live_", response.KeyPrefix[:9])
+	assert.Contains(t, response.ApiKey, "databasus_api_")
+	assert.Equal(t, "databasus_api_", response.KeyPrefix[:14])
 }
 
-func Test_CreateApiKey_WhenUserAlreadyHasKey_ReturnsError(t *testing.T) {
+func Test_UpsertApiKey_WhenUserAlreadyHasKey_ReplacesWithNewKey(t *testing.T) {
 	router := createApiKeyTestRouter()
 	user := users_testing.CreateTestUser(users_enums.UserRoleMember)
 
-	test_utils.MakePostRequest(
+	var firstResponse dto.CreateApiKeyResponseDTO
+	test_utils.MakePostRequestAndUnmarshal(
 		t,
 		router,
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusCreated,
+		http.StatusOK,
+		&firstResponse,
 	)
 
-	resp := test_utils.MakePostRequest(
+	var secondResponse dto.CreateApiKeyResponseDTO
+	test_utils.MakePostRequestAndUnmarshal(
 		t,
 		router,
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusInternalServerError,
+		http.StatusOK,
+		&secondResponse,
 	)
 
-	assert.Contains(t, string(resp.Body), "Failed to create API key")
+	assert.NotEmpty(t, secondResponse.ApiKey)
+	assert.NotEqual(t, firstResponse.ApiKey, secondResponse.ApiKey)
+	assert.NotEqual(t, firstResponse.KeyPrefix, secondResponse.KeyPrefix)
 }
 
 func Test_GetApiKey_WhenKeyExists_ReturnsKeyInfo(t *testing.T) {
@@ -75,7 +81,7 @@ func Test_GetApiKey_WhenKeyExists_ReturnsKeyInfo(t *testing.T) {
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusCreated,
+		http.StatusOK,
 		&createResponse,
 	)
 
@@ -108,40 +114,6 @@ func Test_GetApiKey_WhenNoKeyExists_ReturnsNotFound(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "API key not found")
 }
 
-func Test_RegenerateApiKey_WhenKeyExists_RegeneratesKey(t *testing.T) {
-	router := createApiKeyTestRouter()
-	user := users_testing.CreateTestUser(users_enums.UserRoleMember)
-
-	var createResponse dto.CreateApiKeyResponseDTO
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/users/me/api-key",
-		"Bearer "+user.Token,
-		nil,
-		http.StatusCreated,
-		&createResponse,
-	)
-
-	oldApiKey := createResponse.ApiKey
-
-	var regenerateResponse dto.RegenerateApiKeyResponseDTO
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/users/me/api-key/regenerate",
-		"Bearer "+user.Token,
-		nil,
-		http.StatusOK,
-		&regenerateResponse,
-	)
-
-	assert.NotEmpty(t, regenerateResponse.ApiKey)
-	assert.NotEmpty(t, regenerateResponse.KeyPrefix)
-	assert.Contains(t, regenerateResponse.ApiKey, "dbs_live_")
-	assert.NotEqual(t, oldApiKey, regenerateResponse.ApiKey)
-}
-
 func Test_AuthWithApiKey_ValidKey_AuthenticatesUser(t *testing.T) {
 	router := createApiKeyTestRouter()
 	user := users_testing.CreateTestUser(users_enums.UserRoleMember)
@@ -153,7 +125,7 @@ func Test_AuthWithApiKey_ValidKey_AuthenticatesUser(t *testing.T) {
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusCreated,
+		http.StatusOK,
 		&createResponse,
 	)
 
@@ -185,7 +157,7 @@ func Test_AuthWithApiKey_InvalidKey_ReturnsUnauthorized(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "User not authenticated")
 }
 
-func Test_AuthWithApiKey_AfterRegenerate_OldKeyStopsWorking(t *testing.T) {
+func Test_AuthWithApiKey_AfterUpsert_OldKeyStopsWorking(t *testing.T) {
 	router := createApiKeyTestRouter()
 	user := users_testing.CreateTestUser(users_enums.UserRoleMember)
 
@@ -196,7 +168,7 @@ func Test_AuthWithApiKey_AfterRegenerate_OldKeyStopsWorking(t *testing.T) {
 		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
-		http.StatusCreated,
+		http.StatusOK,
 		&createResponse,
 	)
 
@@ -205,7 +177,7 @@ func Test_AuthWithApiKey_AfterRegenerate_OldKeyStopsWorking(t *testing.T) {
 	test_utils.MakePostRequestAndUnmarshal(
 		t,
 		router,
-		"/api/v1/users/me/api-key/regenerate",
+		"/api/v1/users/me/api-key",
 		"Bearer "+user.Token,
 		nil,
 		http.StatusOK,

@@ -1,10 +1,6 @@
 package users_interfaces
 
-import (
-	"github.com/google/uuid"
-
-	users_models "databasus-backend/internal/features/users/models"
-)
+import "github.com/google/uuid"
 
 type AuditLogWriter interface {
 	WriteAuditLog(message string, userID *uuid.UUID, workspaceID *uuid.UUID)
@@ -15,5 +11,5 @@ type EmailSender interface {
 }
 
 type ApiKeyValidator interface {
-	ValidateApiKey(fullKey string) (*users_models.User, error)
+	ValidateApiKey(fullKey string) (uuid.UUID, error)
 }

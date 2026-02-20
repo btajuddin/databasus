@@ -19,6 +19,9 @@ ALTER TABLE user_api_keys
 ALTER TABLE user_api_keys
     ADD CONSTRAINT uq_user_api_keys_user_id UNIQUE (user_id);
 
+ALTER TABLE user_api_keys
+    ADD CONSTRAINT uq_user_api_keys_key_prefix UNIQUE (key_prefix);
+
 CREATE INDEX idx_user_api_keys_key_prefix ON user_api_keys (key_prefix);
 
 -- +goose StatementEnd
@@ -27,6 +30,7 @@ CREATE INDEX idx_user_api_keys_key_prefix ON user_api_keys (key_prefix);
 -- +goose StatementBegin
 
 DROP INDEX IF EXISTS idx_user_api_keys_key_prefix;
+ALTER TABLE user_api_keys DROP CONSTRAINT IF EXISTS uq_user_api_keys_key_prefix;
 DROP TABLE IF EXISTS user_api_keys;
 
 -- +goose StatementEnd

@@ -28,8 +28,8 @@ func AuthMiddleware(userService *users_services.UserService) gin.HandlerFunc {
 		var user *users_models.User
 		var err error
 
-		// Check if this is an API key (starts with dbs_live_)
-		if strings.HasPrefix(token, "dbs_live_") {
+		// Check if this is an API key (starts with databasus_api_)
+		if strings.HasPrefix(token, "databasus_api_") {
 			user, err = userService.GetUserFromApiKey(token)
 		} else {
 			user, err = userService.GetUserFromToken(token)

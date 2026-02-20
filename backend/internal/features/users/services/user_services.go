@@ -249,7 +249,17 @@ func (s *UserService) GetUserFromApiKey(apiKey string) (*users_models.User, erro
 		return nil, errors.New("API key authentication not configured")
 	}
 
-	return s.apiKeyValidator.ValidateApiKey(apiKey)
+	userID, err := s.apiKeyValidator.ValidateApiKey(apiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepository.GetUserByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
 }
 
 func (s *UserService) GenerateAccessToken(

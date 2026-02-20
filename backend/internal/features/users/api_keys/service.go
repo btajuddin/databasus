@@ -10,22 +10,19 @@ import (
 	"databasus-backend/internal/features/users/api_keys/dto"
 	"databasus-backend/internal/features/users/api_keys/models"
 	users_interfaces "databasus-backend/internal/features/users/interfaces"
-	users_models "databasus-backend/internal/features/users/models"
-	users_repositories "databasus-backend/internal/features/users/repositories"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	apiKeyPrefix       = "dbs_live_"
-	apiKeyPrefixLength = 17
+	apiKeyPrefix       = "databasus_api_"
+	apiKeyPrefixLength = 22
 	apiKeySecretLength = 44
 )
 
 type ApiKeyService struct {
 	repository     *ApiKeyRepository
-	userRepository *users_repositories.UserRepository
 	auditLogWriter users_interfaces.AuditLogWriter
 }
 
@@ -33,11 +30,8 @@ func (s *ApiKeyService) SetAuditLogWriter(writer users_interfaces.AuditLogWriter
 	s.auditLogWriter = writer
 }
 
-func (s *ApiKeyService) GenerateApiKey(userID uuid.UUID) (*dto.CreateApiKeyResponseDTO, error) {
-	existingKey, err := s.repository.GetByUserID(userID)
-	if err == nil && existingKey != nil {
-		return nil, errors.New("user already has an API key")
-	}
+func (s *ApiKeyService) UpsertApiKey(userID uuid.UUID) (*dto.CreateApiKeyResponseDTO, error) {
+	s.repository.DeleteByUserID(userID)
 
 	secret, err := s.generateRandomSecret()
 	if err != nil {
@@ -87,54 +81,32 @@ func (s *ApiKeyService) GetApiKeyInfo(userID uuid.UUID) (*dto.ApiKeyInfoDTO, err
 	}, nil
 }
 
-func (s *ApiKeyService) RegenerateApiKey(userID uuid.UUID) (*dto.RegenerateApiKeyResponseDTO, error) {
-	if err := s.repository.DeleteByUserID(userID); err != nil {
-		return nil, fmt.Errorf("failed to delete existing API key: %w", err)
-	}
-
-	response, err := s.GenerateApiKey(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dto.RegenerateApiKeyResponseDTO{
-		ApiKey:    response.ApiKey,
-		KeyPrefix: response.KeyPrefix,
-		CreatedAt: response.CreatedAt,
-	}, nil
-}
-
-func (s *ApiKeyService) ValidateApiKey(fullKey string) (*users_models.User, error) {
+func (s *ApiKeyService) ValidateApiKey(fullKey string) (uuid.UUID, error) {
 	if len(fullKey) <= apiKeyPrefixLength {
-		return nil, errors.New("invalid API key format")
+		return uuid.Nil, errors.New("invalid API key format")
 	}
 
 	prefix := fullKey[:len(apiKeyPrefix)]
 	if prefix != apiKeyPrefix {
-		return nil, errors.New("invalid API key format")
+		return uuid.Nil, errors.New("invalid API key format")
 	}
 
 	uniquePrefix := fullKey[:apiKeyPrefixLength]
 
 	apiKey, err := s.repository.GetByKeyPrefix(uniquePrefix)
 	if err != nil {
-		return nil, errors.New("API key not found")
+		return uuid.Nil, errors.New("API key not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(apiKey.HashedKey), []byte(fullKey)); err != nil {
-		return nil, errors.New("invalid API key")
+		return uuid.Nil, errors.New("invalid API key")
 	}
 
 	if err := s.repository.UpdateLastUsedAt(apiKey.ID); err != nil {
-		return nil, fmt.Errorf("failed to update last used timestamp: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to update last used timestamp: %w", err)
 	}
 
-	user, err := s.userRepository.GetUserByID(apiKey.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-
-	return user, nil
+	return apiKey.UserID, nil
 }
 
 func (s *ApiKeyService) generateRandomSecret() (string, error) {

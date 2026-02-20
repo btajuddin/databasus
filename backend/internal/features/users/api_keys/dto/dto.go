@@ -18,9 +18,3 @@ type ApiKeyInfoDTO struct {
 	CreatedAt  time.Time  `json:"createdAt"`
 	LastUsedAt *time.Time `json:"lastUsedAt"`
 }
-
-type RegenerateApiKeyResponseDTO struct {
-	ApiKey    string    `json:"apiKey"`
-	KeyPrefix string    `json:"keyPrefix"`
-	CreatedAt time.Time `json:"createdAt"`
-}
