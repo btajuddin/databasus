@@ -13,18 +13,10 @@ export const apiKeyApi = {
     );
   },
 
-  async createApiKey(): Promise<CreateApiKeyResponse> {
+  async upsertApiKey(): Promise<CreateApiKeyResponse> {
     const requestOptions = new RequestOptions();
     return apiHelper.fetchPostJson(
       `${getApplicationServer()}/api/v1/users/me/api-key`,
-      requestOptions,
-    );
-  },
-
-  async regenerateApiKey(): Promise<CreateApiKeyResponse> {
-    const requestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/me/api-key/regenerate`,
       requestOptions,
     );
   },
