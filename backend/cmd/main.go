@@ -29,6 +29,7 @@ import (
 	"databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/features/users/api_keys"
 	users_controllers "databasus-backend/internal/features/users/controllers"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
@@ -234,6 +235,7 @@ func setUpRoutes(r *gin.Engine) {
 	audit_logs.GetAuditLogController().RegisterRoutes(protected)
 	users_controllers.GetManagementController().RegisterRoutes(protected)
 	users_controllers.GetSettingsController().RegisterRoutes(protected)
+	api_keys.GetApiKeyController().RegisterRoutes(protected)
 }
 
 func setUpDependencies() {
@@ -246,6 +248,7 @@ func setUpDependencies() {
 	storages.SetupDependencies()
 	backups_config.SetupDependencies()
 	task_cancellation.SetupDependencies()
+	api_keys.SetupDependencies()
 }
 
 func runBackgroundTasks(log *slog.Logger) {

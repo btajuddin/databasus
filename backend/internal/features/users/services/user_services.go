@@ -34,6 +34,7 @@ type UserService struct {
 	auditLogWriter          users_interfaces.AuditLogWriter
 	emailSender             users_interfaces.EmailSender
 	passwordResetRepository *users_repositories.PasswordResetRepository
+	apiKeyValidator         users_interfaces.ApiKeyValidator
 }
 
 func (s *UserService) SetAuditLogWriter(writer users_interfaces.AuditLogWriter) {
@@ -42,6 +43,10 @@ func (s *UserService) SetAuditLogWriter(writer users_interfaces.AuditLogWriter) 
 
 func (s *UserService) SetEmailSender(sender users_interfaces.EmailSender) {
 	s.emailSender = sender
+}
+
+func (s *UserService) SetApiKeyValidator(validator users_interfaces.ApiKeyValidator) {
+	s.apiKeyValidator = validator
 }
 
 func (s *UserService) SignUp(request *users_dto.SignUpRequestDTO) (*users_models.User, error) {
@@ -237,6 +242,14 @@ func (s *UserService) GetUserFromToken(token string) (*users_models.User, error)
 	}
 
 	return nil, errors.New("invalid token")
+}
+
+func (s *UserService) GetUserFromApiKey(apiKey string) (*users_models.User, error) {
+	if s.apiKeyValidator == nil {
+		return nil, errors.New("API key authentication not configured")
+	}
+
+	return s.apiKeyValidator.ValidateApiKey(apiKey)
 }
 
 func (s *UserService) GenerateAccessToken(

@@ -5,11 +5,12 @@ import (
 	users_models "databasus-backend/internal/features/users/models"
 	users_services "databasus-backend/internal/features/users/services"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware validates JWT token and adds user to context
+// AuthMiddleware validates JWT token or API key and adds user to context
 func AuthMiddleware(userService *users_services.UserService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("Authorization")
@@ -24,7 +25,16 @@ func AuthMiddleware(userService *users_services.UserService) gin.HandlerFunc {
 			token = token[7:]
 		}
 
-		user, err := userService.GetUserFromToken(token)
+		var user *users_models.User
+		var err error
+
+		// Check if this is an API key (starts with dbs_live_)
+		if strings.HasPrefix(token, "dbs_live_") {
+			user, err = userService.GetUserFromApiKey(token)
+		} else {
+			user, err = userService.GetUserFromToken(token)
+		}
+
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			ctx.Abort()

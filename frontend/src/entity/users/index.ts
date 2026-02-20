@@ -2,6 +2,7 @@
 export { userApi } from './api/userApi';
 export { settingsApi } from './api/settingsApi';
 export { userManagementApi } from './api/userManagementApi';
+export { apiKeyApi } from './api/apiKeyApi';
 
 // Types and Enums
 export type { SignInRequest } from './model/SignInRequest';
@@ -22,3 +23,5 @@ export type { SendResetPasswordCodeRequest } from './model/SendResetPasswordCode
 export type { ResetPasswordRequest } from './model/ResetPasswordRequest';
 export { UserRole } from './model/UserRole';
 export { WorkspaceRole } from './model/WorkspaceRole';
+export type { ApiKeyInfo } from './model/ApiKeyInfo';
+export type { CreateApiKeyResponse } from './model/CreateApiKeyResponse';

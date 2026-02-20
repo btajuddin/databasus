@@ -13,6 +13,7 @@ var userService = &UserService{
 	nil,
 	email.GetEmailSMTPSender(),
 	users_repositories.GetPasswordResetRepository(),
+	nil,
 }
 var settingsService = &SettingsService{
 	users_repositories.GetUsersSettingsRepository(),
